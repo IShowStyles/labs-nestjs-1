@@ -4,6 +4,7 @@ import { TemperatureSensorsType } from '@/types';
 import { CreateTemperatureSensorDto } from './dto/create-sensor.dto';
 import { UpdateTemperatureSensorDto } from './dto/update-temp-sensor.dto';
 import { firstValueFrom } from 'rxjs';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class TemperatureSensorService {
@@ -25,6 +26,7 @@ export class TemperatureSensorService {
     const newSensor: TemperatureSensorsType = {
       ...sensor,
       timestamp: new Date(),
+      id: randomUUID(),
     };
     this.store.upsertSensor(newSensor);
     return newSensor;
