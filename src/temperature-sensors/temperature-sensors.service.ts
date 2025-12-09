@@ -5,21 +5,30 @@ import { CreateTemperatureSensorDto } from './dto/create-sensor.dto';
 import { UpdateTemperatureSensorDto } from './dto/update-temp-sensor.dto';
 import { firstValueFrom } from 'rxjs';
 import { randomUUID } from 'crypto';
+import { PrismaService } from '@/utils/db';
 
 @Injectable()
 export class TemperatureSensorService {
-  constructor(private readonly store: SensorStore) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async getAll() {
-    return await firstValueFrom(this.store.getSensors());
+    return await this.prisma.sensor.findMany();
   }
 
-  getOne(id: string) {
-    const sensor = this.store.getOne(id);
-    if (!sensor) {
-      throw new NotFoundException(`Sensor with id ${id} not found`);
+  async getOne(id: string) {
+    try {
+      const sen = await this.prisma.sensor.findUnique({
+        where: {
+          id: id,
+        },
+      });
+      if (!sen) {
+        return [];
+      }
+      return sen;
+    } catch (err) {
+      throw new Error(err);
     }
-    return sensor;
   }
 
   create(sensor: CreateTemperatureSensorDto) {
@@ -28,12 +37,22 @@ export class TemperatureSensorService {
       timestamp: new Date(),
       id: randomUUID(),
     };
-    this.store.upsertSensor(newSensor);
-    return newSensor;
+
+    try {
+      return this.prisma.sensor.create({
+        data: newSensor,
+      });
+    } catch (err) {
+      throw new Error(`Failed to create sensor: ${err}`);
+    }
   }
 
-  update(id: string, sensor: Partial<UpdateTemperatureSensorDto>) {
-    const existing = this.store.getOne(id);
+  async update(id: string, sensor: Partial<UpdateTemperatureSensorDto>) {
+    const existing = await this.prisma.sensor.findUnique({
+      where: {
+        id: id,
+      },
+    });
     if (!existing) {
       throw new NotFoundException(`Sensor with id ${id} not found`);
     }
@@ -44,17 +63,25 @@ export class TemperatureSensorService {
       id,
     };
 
-    this.store.upsertSensor(updatedSensor);
-    return updatedSensor;
+    const data = await this.prisma.sensor.upsert({
+      where: { id },
+      create: updatedSensor,
+      update: sensor,
+    });
+
+    return data;
   }
 
-  remove(id: string) {
-    const existing = this.store.getOne(id);
+  async remove(id: string) {
+    const existing = await this.prisma.sensor.findUnique({
+      where: {
+        id: id,
+      },
+    });
     if (!existing) {
       throw new NotFoundException(`Sensor with id ${id} not found`);
     }
 
-    this.store.removeSensor(id);
     return { message: `Sensor ${id} deleted.` };
   }
 }
