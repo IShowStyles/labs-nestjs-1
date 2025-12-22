@@ -12,7 +12,8 @@
     "prisma:migrate": "npx prisma migrate dev",
     "dev:all": "npm run db:up && npm run prisma:generate && npm run start:dev",
     "build": "npx prisma generate && nest build",
-    "start:dev": "nest start --watch"
+    "start:dev": "nest start --watch",
+    "start:prod": "node dist/src/main.js"
   },
   "jest": {
     "collectCoverageFrom": [
