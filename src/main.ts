@@ -5,22 +5,25 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  const config = new DocumentBuilder()
-    .setTitle('Temperature Sensors API')
-    .setDescription('API documentation for temperature sensors')
-    .setVersion('1.0')
-    .build();
-
   app.enableCors({
-    origin: process.env.FRONTEND_URL || '*',
+    origin: '*',
+    // origin: process.env.FRONTEND_URL || '*',
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
   });
 
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api', app, document);
+  app.setGlobalPrefix('api');
 
-  const port = process.env.PORT ? Number(process.env.PORT) : 3000;
-  await app.listen(port);
-  console.log(`Listening on port ${port}`);
+  const config = new DocumentBuilder()
+    .setTitle('Sensor API')
+    .setVersion('1.0')
+    .addTag('sensors')
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
+  const PORT = process.env.PORT ? Number(process.env.PORT) : 3033;
+  const server = await app.listen(PORT);
+  server.setTimeout(0);
+  server.keepAliveTimeout = 0;
 }
 bootstrap();

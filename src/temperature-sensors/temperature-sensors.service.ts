@@ -6,10 +6,14 @@ import { UpdateTemperatureSensorDto } from './dto/update-temp-sensor.dto';
 import { firstValueFrom } from 'rxjs';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '@/utils/db';
+import { SseService } from '@/utils/sse.service';
 
 @Injectable()
 export class TemperatureSensorService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly sseService: SseService,
+  ) {}
 
   async getAll() {
     return await this.prisma.sensor.findMany();
@@ -31,7 +35,7 @@ export class TemperatureSensorService {
     }
   }
 
-  create(sensor: CreateTemperatureSensorDto) {
+  async create(sensor: CreateTemperatureSensorDto) {
     const newSensor: TemperatureSensorsType = {
       ...sensor,
       timestamp: new Date(),
@@ -39,9 +43,28 @@ export class TemperatureSensorService {
     };
 
     try {
-      return this.prisma.sensor.create({
+      const created = await this.prisma.sensor.create({
         data: newSensor,
       });
+
+      // If the temperature value is below the critical threshold, emit an SSE
+      // so frontends subscribed to the stream can show a tooltip/notification.
+      try {
+        if (typeof created.value === 'number' && created.value < 20) {
+          this.sseService.emit('critical-temp', {
+            id: created.id,
+            sensorName: created.sensorName,
+            value: created.value,
+            timestamp: created.timestamp,
+          });
+        }
+      } catch (emitErr) {
+        // Don't fail the request if emitting the event fails — just log it.
+        // eslint-disable-next-line no-console
+        console.error('Failed to emit SSE critical-temp event', emitErr);
+      }
+
+      return created;
     } catch (err) {
       throw new Error(`Failed to create sensor: ${err}`);
     }

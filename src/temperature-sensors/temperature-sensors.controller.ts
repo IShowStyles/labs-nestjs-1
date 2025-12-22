@@ -16,17 +16,31 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { TemperatureSensorService } from './temperature-sensors.service';
+import { SseService } from '@/utils/sse.service';
+import { Sse, MessageEvent } from '@nestjs/common';
+import { Observable } from 'rxjs';
 import { CreateTemperatureSensorDto } from './dto/create-sensor.dto';
 import { UpdateTemperatureSensorDto } from './dto/update-temp-sensor.dto';
 
 @ApiTags('sensors')
 @Controller('sensors')
 export class TemperatureSensorsController {
-  constructor(private readonly sensorsService: TemperatureSensorService) {}
+  constructor(
+    private readonly sensorsService: TemperatureSensorService,
+    private readonly sseService: SseService,
+  ) {}
+
+  @Sse('events')
+  events(): Observable<MessageEvent> {
+    return this.sseService.stream();
+  }
 
   @Get('all')
   @ApiOperation({ summary: 'Get all temperature sensors' })
-  @ApiResponse({ status: 200, description: 'List of temperature sensors returned.' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of temperature sensors returned.',
+  })
   getAll() {
     return this.sensorsService.getAll();
   }
@@ -41,7 +55,7 @@ export class TemperatureSensorsController {
 
   @Post()
   @ApiOperation({ summary: 'Create new temperature sensor' })
-  @ApiBody({ type: CreateTemperatureSensorDto })
+  @ApiBody({ type: typeof CreateTemperatureSensorDto })
   @ApiResponse({ status: 201, description: 'Sensor successfully created.' })
   createTemp(@Body() dto: CreateTemperatureSensorDto) {
     return this.sensorsService.create(dto);
@@ -50,7 +64,7 @@ export class TemperatureSensorsController {
   @Put(':id')
   @ApiOperation({ summary: 'Update entire temperature sensor by ID' })
   @ApiParam({ name: 'id', description: 'Sensor ID' })
-  @ApiBody({ type: UpdateTemperatureSensorDto })
+  @ApiBody({ type: typeof UpdateTemperatureSensorDto })
   updateOne(@Param('id') id: string, @Body() dto: UpdateTemperatureSensorDto) {
     return this.sensorsService.update(id, dto);
   }
@@ -59,7 +73,10 @@ export class TemperatureSensorsController {
   @ApiOperation({ summary: 'Partially update temperature sensor by ID' })
   @ApiParam({ name: 'id', description: 'Sensor ID' })
   @ApiBody({ type: UpdateTemperatureSensorDto })
-  partialUpdate(@Param('id') id: string, @Body() dto: Partial<UpdateTemperatureSensorDto>) {
+  partialUpdate(
+    @Param('id') id: string,
+    @Body() dto: Partial<UpdateTemperatureSensorDto>,
+  ) {
     return this.sensorsService.update(id, dto);
   }
 
