@@ -14,9 +14,26 @@ datasource db {
 }
 
 model Sensor {
-  id         String   @id @default(uuid())
-  sensorName String
-  value      Float
-  unit       String
-  timestamp  DateTime @default(now())
+  id          String       @id @default(uuid())
+  sensorName  String
+  value       Float
+  unit        String
+  timestamp   DateTime     @default(now())
+  sensorDatas SensorData[]
+}
+
+model User {
+  id    String @id @default(uuid())
+  email String @unique
+  name  String
+}
+
+model SensorData {
+  id        String   @id @default(uuid())
+  sensorId  String
+  value     Float
+  unit      String
+  timestamp DateTime @default(now())
+
+  sensor Sensor @relation(fields: [sensorId], references: [id])
 }
